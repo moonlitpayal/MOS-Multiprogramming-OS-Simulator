@@ -1,0 +1,78 @@
+====================================================================================================
+MOS PHASE 1 - STREAM JOB ANALYTICS REPORT
+====================================================================================================
+Cost model (ticks): card read=1  CPU instr=1  I/O (GD/PD)=5  terminate=2  | arrival gap=0
+
+1. PER-JOB METRICS
+----------------------------------------------------------------------------------------------------
+Seq JobID Arrive  Start    End   Wait    Svc    TAT    R    W     E    CPU%  Status
+  1 0102       0      0     36      0     36     36    1    1    18   50.0%  OK
+  2 0201       0     36     76     36     40     76    3    3     3    7.5%  OK
+  3 0003       0     76    147     76     71    147    5    7     4    5.6%  OK
+  4 0202       0    147    193    147     46    193    1    5     9   19.6%  OK
+  5 0007       0    193    231    193     38    231    1    2    16   42.1%  OK
+  6 0301       0    231    270    231     39    270    3    3     3    7.7%  OK
+  7 0302       0    270    303    270     33    303    2    3     2    6.1%  OK
+  8 0101       0    303    321    303     18    321    1    1     2   11.1%  OK
+  9 0401       0    321    366    321     45    366    4    3     3    6.7%  OK
+ 10 0402       0    366    417    366     51    417    4    4     4    7.8%  OK
+ 11 0102       0    417    437    417     20    437    1    1     3   15.0%  OK
+----------------------------------------------------------------------------------------------------
+    AVG                         214.5   39.7  254.3   26   33    67   15.3%
+    (R/W/E columns in the AVG row are totals)
+    TAT = End - Arrive | Wait = Start - Arrive | Svc = End - Start | CPU% = execute ticks / Svc
+
+2. SYSTEM PERFORMANCE
+----------------------------------------------------------------------------------------------------
+Jobs completed ........... 11
+Total time (makespan) .... 437 ticks
+Turnaround time .......... avg 254.3 | min 36 | max 437
+Waiting time ............. avg 214.5
+Throughput ............... 2.52 jobs per 100 ticks
+
+Where did the time go?
+  User CPU (execute LR/SR/CR/BT)         67 ticks   15.3%  ######
+  OS work (LOAD cards + TERMINATE)       75 ticks   17.2%  ######
+  I/O  - read  (GD)                     130 ticks   29.7%  ###########
+  I/O  - write (PD)                     165 ticks   37.8%  ###############
+  Idle (waiting for arrivals)             0 ticks    0.0%  
+
+CPU utilization (user work only) .......  15.3%
+CPU utilization (user + OS work) .......  32.5%
+CPU waiting on I/O .....................  67.5%
+
+3. OPERATION COUNTS (R / W / E)
+----------------------------------------------------------------------------------------------------
+R  (reads  = GD) ........   26   (20.6% of ops)
+W  (writes = PD) ........   33   (26.2% of ops)
+E  (execute: LR/SR/CR/BT)   67   (53.2% of ops)
+I/O operations (R + W) ..   59   | avg per job 5.4 | avg I/O cost 5.0 ticks per op
+Instructions fetched ....  137   (R + W + E + one H per halted job)
+
+4. EXECUTION TIMELINE
+----------------------------------------------------------------------------------------------------
+  J01 0102  |LREEEW                                                                   |
+  J02 0201  |      LRRWRWT                                                            |
+  J03 0003  |            LRWRWRWRRWRWT                                                |
+  J04 0202  |                        LRWWWWWWL                                        |
+  J05 0007  |                                LREEWWT                                  |
+  J06 0301  |                                      LRWRERW                            |
+  J07 0302  |                                             RWRWWT                      |
+  J08 0101  |                                                  LRWT                   |
+  J09 0401  |                                                     LRWRRREW            |
+  J10 0402  |                                                             LRRWRWRWT   |
+  J11 0102  |                                                                     LRWL|
+  SYSTEM    |LREEEWLRRWRWLRWRWRWRRWRWLRWWWWWWLREEWWLRWRERWRWRWWLRWLRWRRREWLRRWRWRWLRWL|
+             0         60        120       180       240       300       360       420
+  (1 column = 6 ticks)   L=LOAD  E=execute  R=read(GD)  W=write(PD)  T=terminate  .=idle
+  Full tick-by-tick log: see the timeline CSV file.
+
+5. OBSERVATIONS
+----------------------------------------------------------------------------------------------------
+- Longest turnaround: J11 (0102) with 437 ticks (waited 417, ran 20).
+- Most I/O-bound job: J03 (0003), 84.5% of its time in I/O.
+- Only one job is in memory at a time, so the CPU stalls during every GD/PD: 67.5% of all time is I/O wait vs 15.3% user CPU.
+- Job ID 0102 appears 2 times (J01, J11); metrics are tracked by sequence number.
+- J02 (0201): $AMJ header says 0012 instr / 0003 PD, loaded program has 12 / 4.
+- J08 (0101): $AMJ header says 0004 instr / 0001 PD, loaded program has 5 / 1.
+- J11 (0102): $AMJ header says 0007 instr / 0002 PD, loaded program has 8 / 2.
